@@ -19,7 +19,7 @@ const questions = [
   {
     type: 'input',
     name: 'max_time_page_load',
-    message: 'How much maximum time to devote to loading one page (in ms)',
+    message: 'How much maximum time to devote to loading resource (in ms)',
     default() {
       return '5000'
     }
@@ -123,22 +123,23 @@ const createPage = async (browser, link) => {
   const page = await browser.newPage()
   await page.setViewport({ width: 1280, height: 630 });
   await page.setDefaultNavigationTimeout(0)
+  await page.setRequestInterception(true)
 
   debug && console.log('goto load url:', link)
-  await page.goto(link)
+  page.goto(link)
 
   await new Promise(resolve => {
-    debug && console.log('loading...')
-    const timeid = setInterval(() => {
+    let timeid = null
+    page.on('request', request => {
       debug && console.log('loading...')
-    }, 1000)
-    setTimeout(() => {
-      clearInterval(timeid)
-      resolve()
-    }, max_time_page_load)
+      timeid && clearTimeout(timeid)
+      timeid = setTimeout(() => {
+        debug && console.log('goto done load url:', link)
+        resolve()
+      }, max_time_page_load)
+      request.continue()
+    })
   })
-
-  debug && console.log('goto endload url:', link)
 
   const pathIndex = path.join(dirPath, 'index.html')
   debug && console.log('save page:', pathIndex)
