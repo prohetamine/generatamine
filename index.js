@@ -183,7 +183,7 @@ const createPage = async (browser, link) => {
         const href = window.location.href
         if (
           href.replace(/#/gi, '_-hash-_') ||
-          href.replace(/\?/, '_-quest-_') ||
+          href.replace(/\\?/, '_-quest-_') ||
           href.replace(/=/gi, '_-equally-_') ||
           href.replace(/&/gi, '_-and-_')
         ) {
