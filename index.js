@@ -121,7 +121,7 @@ const createPage = async (browser, link) => {
 
   const pathname = href
                       .replace(origin, '')
-                      .replace(/#/gi, 'hash/')
+                      .replace(/#/gi, '_-3-_')
                       .replace(/\?/, '_-0-_')
                       .replace(/=/gi, '_-1-_')
                       .replace(/&/gi, '_-2-_')
@@ -182,13 +182,13 @@ const createPage = async (browser, link) => {
       script.textContent = `
         const href = window.location.href
         if (
-          href.match(/hash\\//) ||
-          href.replace(/\?/, '_-0-_') ||
-          href.replace(/=/gi, '_-1-_') ||
-          href.replace(/&/gi, '_-2-_')
+          href.match(/_-3-_/) ||
+          href.match(/\\?/) ||
+          href.match(/=/gi) ||
+          href.match(/&/gi)
         ) {
           window.location.href = href
-                                  .replace(/hash\\//, '#')
+                                  .replace(/_-3-_/, '#')
                                   .replace(/_-0-_/gi, '?')
                                   .replace(/_-1-_/gi, '=')
                                   .replace(/_-2-_/gi, '&')
