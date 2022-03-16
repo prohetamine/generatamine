@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "react-scripts": "./index.js"
+    "generatamine": "./index.js"
   },
   "author": "",
   "license": "ISC",
