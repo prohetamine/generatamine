@@ -4,6 +4,7 @@ const inquirer = require('inquirer')
     , puppeteer = require('puppeteer')
     , path = require('path')
     , fs = require('fs')
+    , express = require('express')
 
 const questions = [
   {
@@ -12,14 +13,6 @@ const questions = [
     message: 'Which folder should i put the static build pages in:',
     default() {
       return 'build'
-    }
-  },
-  {
-    type: 'input',
-    name: 'url',
-    message: 'Your development server is running, if running, then specify the url:',
-    default() {
-      return 'http://localhost:3000'
     }
   },
   {
@@ -58,12 +51,20 @@ const questions = [
     ]
   },
   {
+    type: 'input',
+    name: 'site',
+    message: '',
+    default() {
+      return 'https://prohetamine.ru'
+    }
+  },
+  {
     type: 'list',
     name: 'launch',
     message: 'Do you want to see in real time how it happens:',
     choices: [
-      'no',
-      'yes'
+      'yes',
+      'no'
     ]
   }
 ]
@@ -80,6 +81,7 @@ const config = new Promise(async resolve => {
   resolve(
     () => ({
       ...answers,
+      url: 'http://localhost:5555',
       debug: true,
       launch,
       path_build,
@@ -90,22 +92,39 @@ const config = new Promise(async resolve => {
   )
 })
 
-const createPage = async (browser, url) => {
+const progress = async links => {
+  const { debug } = (await config)()
+  const linksValues = Object.values(links)
+
+  if (debug) {
+    console.clear()
+    console.log('progress:', `${linksValues.filter(f => f).length} / ${linksValues.length}`)
+  }
+}
+
+const createPage = async (browser, link) => {
   const { debug, max_time_page_load, screenshots, path_build } = (await config)()
 
-  const { pathname = '/' } = new URL(url)
+  const { origin, href } = new URL(link)
 
+  const pathname = href.replace(origin, '').replace(/#/gi, 'hash/')
   const dirPath = path.join(path_build, pathname)
 
-  if (pathname !== '/') {
-    fs.mkdirSync(dirPath, { recursive: true })
+  try {
+    if (pathname !== '/') {
+      fs.mkdirSync(dirPath, { recursive: true })
+    }
+  } catch (e) {
+    /* is file */
+    return {}
   }
 
   const page = await browser.newPage()
+  await page.setViewport({ width: 1280, height: 630 });
   await page.setDefaultNavigationTimeout(0)
 
-  debug && console.log('goto load url: ', url)
-  await page.goto(url)
+  debug && console.log('goto load url:', link)
+  await page.goto(link)
 
   await new Promise(resolve => {
     setTimeout(() => {
@@ -113,26 +132,41 @@ const createPage = async (browser, url) => {
     }, max_time_page_load)
   })
 
-  debug && console.log('goto endload url: ', url)
+  debug && console.log('goto endload url:', link)
 
-  const pathIndex = path.join(path_build, pathname, 'index.html')
-  debug && console.log('save page: ', pathIndex)
+  const pathIndex = path.join(dirPath, 'index.html')
+  debug && console.log('save page:', pathIndex)
 
-  const htmlpage = await page.evaluate(() => document.getElementsByTagName('html')[0].outerHTML)
+  const htmlpage = await page.evaluate(
+    () => {
+      const script = document.createElement('script')
+      script.setAttribute('type', 'text/javascript')
+      script.textContent = `
+        const href = window.location.href
+        if (href.match(/hash\\//)) {
+          window.location.href = href.replace(/hash\\//, '#')
+        }
+      `
+      document.head.appendChild(script)
+
+      return document.getElementsByTagName('html')[0].outerHTML
+    }
+  )
+
   fs.writeFileSync(pathIndex, htmlpage)
-  debug && console.log('save page ok: ', pathIndex)
+  debug && console.log('save page ok:', pathIndex)
 
-  debug && screenshots && console.log('screenshot page: ', url)
+  debug && screenshots && console.log('screenshot page:', link)
   if (screenshots) {
-    const fullpath = path.join(path_build, pathname, 'screenshot.png')
+    const fullpath = path.join(dirPath, 'screenshot.png')
     await page.screenshot({ path: fullpath })
-    debug && console.log('screenshot page ok: ', fullpath)
+    debug && console.log('screenshot page ok:', fullpath)
   }
 
   const links = await page.evaluate(() =>
-    [...document.querySelectorAll('a')].map(a => {
-      return a.href
-    }).filter(f => f)
+      [...document.querySelectorAll('a')]
+        .map(a => a.href)
+        .filter(f => f && f.match(window.location.origin))
   )
 
   await page.close()
@@ -143,13 +177,39 @@ const createPage = async (browser, url) => {
   }, {})
 }
 
+const createRobots = async () => {
+  const { path_build, site } = (await config)()
+  fs.writeFileSync(path.join(path_build, ''), `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`)
+}
+
+const server = () => new Promise(
+  async resolve => {
+    const { launch, path_build } = (await config)()
+    const app = express()
+    app.get('*', (req, res, next) => {
+      if (req.path === '/') {
+        res.sendFile('index.html', { root: path_build })
+      } else {
+        express.static(path_build)(req, res, next)
+      }
+    })
+    app.listen(5555, () => resolve())
+  }
+)
+
 ;(async () => {
   const { launch, url } = (await config)()
+
+  await server()
 
   const browser = await puppeteer.launch({
     ignoreHTTPSErrors: true,
     headless: !launch,
-    args: ['--disable-setuid-sandbox', '--no-sandbox'],
+    args: [
+      '--disable-setuid-sandbox',
+      '--no-sandbox',
+      '--window-size=1200,630'
+    ],
   })
 
   let links = await createPage(browser, url)
@@ -157,8 +217,8 @@ const createPage = async (browser, url) => {
   for (let x = 0; Object.keys(links).find(link => !links[link]); x++) {
     const link = Object.keys(links).find(link => !links[link])
 
+    await progress(links)
     const pageLinks = await createPage(browser, link)
-
     links[link] = true
 
     Object.keys(pageLinks)
@@ -168,6 +228,6 @@ const createPage = async (browser, url) => {
   }
 
   await browser.close()
-  // 1200x630
 
+  await createRobots()
 })()
