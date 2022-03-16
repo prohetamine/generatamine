@@ -60,7 +60,7 @@ const questions = [
   },
   {
     type: 'list',
-    name: 'launch',
+    name: 'debug',
     message: 'Do you want to see in real time how it happens:',
     choices: [
       'yes',
@@ -75,15 +75,15 @@ const config = new Promise(async resolve => {
   const screenshots = answers.screenshots === 'yes'
       , question = answers.question === 'yes'
       , hash = answers.hash === 'yes'
-      , launch = answers.launch === 'yes'
+      , debug = answers.debug === 'yes'
       , path_build = path.join(path.resolve(''), answers.path_build)
 
   resolve(
     () => ({
       ...answers,
       url: 'http://localhost:5555',
-      debug: true,
-      launch,
+      debug,
+      debugLaunch: false,
       path_build,
       screenshots,
       question,
@@ -229,13 +229,13 @@ const server = () => new Promise(
 )
 
 ;(async () => {
-  const { launch, url, debug, path_build } = (await config)()
+  const { debugLaunch, url, debug, path_build } = (await config)()
 
   await server()
 
   const browser = await puppeteer.launch({
     ignoreHTTPSErrors: true,
-    headless: !launch,
+    headless: !debugLaunch,
     args: [
       '--disable-setuid-sandbox',
       '--no-sandbox',
