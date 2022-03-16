@@ -121,10 +121,10 @@ const createPage = async (browser, link) => {
 
   const pathname = href
                       .replace(origin, '')
-                      .replace(/#/gi, '_-3-_')
-                      .replace(/\?/, '_-0-_')
-                      .replace(/=/gi, '_-1-_')
-                      .replace(/&/gi, '_-2-_')
+                      .replace(/#/gi, '_-hash-_')
+                      .replace(/\?/, '_-quest-_')
+                      .replace(/=/gi, '_-equally-_')
+                      .replace(/&/gi, '_-and-_')
 
   const dirPath = path.join(path_build, pathname)
 
@@ -182,16 +182,16 @@ const createPage = async (browser, link) => {
       script.textContent = `
         const href = window.location.href
         if (
-          href.match(/_-3-_/) ||
-          href.match(/\\?/) ||
-          href.match(/=/gi) ||
-          href.match(/&/gi)
+          href.replace(/#/gi, '_-hash-_') ||
+          href.replace(/\?/, '_-quest-_') ||
+          href.replace(/=/gi, '_-equally-_') ||
+          href.replace(/&/gi, '_-and-_')
         ) {
           window.location.href = href
-                                  .replace(/_-3-_/, '#')
-                                  .replace(/_-0-_/gi, '?')
-                                  .replace(/_-1-_/gi, '=')
-                                  .replace(/_-2-_/gi, '&')
+                                  .replace(/_-hash-_/, '#')
+                                  .replace(/_-quest-_/, '?')
+                                  .replace(/_-equally-_/g, '=')
+                                  .replace(/_-and-_/gi, '&')
         }
       `
       document.head.appendChild(script)
@@ -253,7 +253,8 @@ const createSitemap = async () => {
         link =>
           link
             .replace(url, site)
-            .replace(/#/gi, 'hash/')
+            .replace(/#/g, '_-hash-_')
+            .replace(/\?/g, '_-quest-_')
       )
       .join('\n')
   )
