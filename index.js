@@ -100,6 +100,7 @@ const progress = async links => {
   if (debug) {
     console.clear()
     console.log('progress:', `${linksValues.filter(f => f).length + 1} / ${linksValues.length + 1}`)
+    console.log('')
   }
 }
 
@@ -125,21 +126,27 @@ const createPage = async (browser, link) => {
   await page.setDefaultNavigationTimeout(0)
   await page.setRequestInterception(true)
 
-  debug && console.log('goto load url:', link)
+  debug && console.log('load page:', link)
   page.goto(link)
+
+  page.on('request', request => {
+    request.continue()
+  })
 
   await new Promise(resolve => {
     let timeid = null
-    page.on('request', request => {
-      debug && console.log('loading...')
+
+    page.on('response', async response => {
+      const buffer = await response.buffer()
+      debug && console.log('loading resource:', bytesToSize(buffer.length), `[${response.request().resourceType()}]`)
       timeid && clearTimeout(timeid)
       timeid = setTimeout(() => {
-        debug && console.log('goto done load url:', link)
+        debug && console.log('load page done:', link)
         resolve()
       }, max_time_page_load)
-      request.continue()
     })
   })
+
 
   const pathIndex = path.join(dirPath, 'index.html')
   debug && console.log('save page:', pathIndex)
@@ -161,13 +168,13 @@ const createPage = async (browser, link) => {
   )
 
   fs.writeFileSync(pathIndex, htmlpage)
-  debug && console.log('save page ok:', pathIndex)
+  debug && console.log('save page done:', pathIndex)
 
   debug && screenshots && console.log('screenshot page:', link)
   if (screenshots) {
     const fullpath = path.join(dirPath, 'screenshot.png')
     await page.screenshot({ path: fullpath })
-    debug && console.log('screenshot page ok:', fullpath)
+    debug && console.log('screenshot page done:', fullpath)
   }
 
   const links = await page.evaluate(() =>
@@ -194,10 +201,10 @@ const createRobots = async () => {
     pathfile,
     `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`
   )
-  debug && console.log('create robots.txt ok:', pathfile)
+  debug && console.log('create robots.txt done:', pathfile)
 }
 
-const createSitemap = async (links) => {
+const createSitemap = async links => {
   const { path_build, site, debug, url } = (await config)()
   const pathfile = path.join(path_build, 'sitemap.txt')
   debug && console.log('create sitemap.txt:', pathfile)
@@ -213,7 +220,7 @@ const createSitemap = async (links) => {
       )
       .join('\n')
   )
-  debug && console.log('create sitemap.txt ok:', pathfile)
+  debug && console.log('create sitemap.txt done:', pathfile)
 }
 
 const server = () => new Promise(
@@ -236,6 +243,13 @@ const server = () => new Promise(
     app.listen(5555, () => resolve())
   }
 )
+
+const bytesToSize = bytes => {
+   const sizes = ['Bytes', 'Kb', 'Mb', 'Gb', 'Tb']
+   if (bytes == 0) return '0 Byte'
+   const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
+   return Math.round(bytes / Math.pow(1024, i), 2) + '' + sizes[i]
+}
 
 ;(async () => {
   const { debugLaunch, url, debug, path_build } = (await config)()
