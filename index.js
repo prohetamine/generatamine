@@ -6,6 +6,7 @@ const inquirer = require('inquirer')
     , fs = require('fs')
     , express = require('express')
     , sleep = require('sleep-promise')
+    , chalk = require('chalk')
 
 const questions = [
   {
@@ -58,17 +59,10 @@ const questions = [
     default() {
       return 'https://prohetamine.ru'
     }
-  },
-  {
-    type: 'list',
-    name: 'debug',
-    message: 'Do you want to see in real time how it happens:',
-    choices: [
-      'yes',
-      'no'
-    ]
   }
 ]
+
+let links = {}
 
 const config = new Promise(async resolve => {
   const answers = await inquirer.prompt(questions)
@@ -76,14 +70,12 @@ const config = new Promise(async resolve => {
   const screenshots = answers.screenshots === 'yes'
       , question = answers.question === 'yes'
       , hash = answers.hash === 'yes'
-      , debug = answers.debug === 'yes'
       , path_build = path.join(path.resolve(''), answers.path_build)
 
   resolve(
     () => ({
       ...answers,
       url: 'http://localhost:5555',
-      debug,
       debugLaunch: false,
       path_build,
       screenshots,
@@ -93,23 +85,47 @@ const config = new Promise(async resolve => {
   )
 })
 
-const progress = async links => {
-  const { debug } = (await config)()
-  const linksValues = Object.values(links)
+let pageLog = ''
 
-  if (debug) {
-    console.clear()
-    console.log('progress:', `${linksValues.filter(f => f).length + 1} / ${linksValues.length + 1}`)
-    console.log('')
+log = (() => {
+  let i = 21
+  return (...args) => {
+    if (i > 20) {
+      const linksValues = Object.values(links)
+      const progress = `   progress: ${chalk.bold(linksValues.filter(f => f).length + 1)}/${chalk.bold(linksValues.length + 1)}   ${pageLog ? `page: ${pageLog}   ` : ''}`
+
+      console.clear()
+      console.log(chalk.bgWhiteBright(' '.repeat(progress.length - 18)))
+      console.log(
+        chalk.black(
+          chalk.bgWhiteBright(progress)
+        )
+      )
+      console.log(chalk.bgWhiteBright(' '.repeat(progress.length - 18)))
+      console.log('')
+      i = 0
+    }
+    i++
+    console.log(...args)
   }
-}
+})()
+
+/*process.on('uncaughtException', err => {
+  log(chalk.bgRed(`critical loading error (!!!)`))
+})*/
 
 const createPage = async (browser, link) => {
-  const { debug, max_time_page_load, screenshots, path_build } = (await config)()
+  const { max_time_page_load, screenshots, path_build, hash, question } = (await config)()
 
   const { origin, href } = new URL(link)
 
-  const pathname = href.replace(origin, '').replace(/#/gi, 'hash/')
+  const pathname = href
+                      .replace(origin, '')
+                      .replace(/#/gi, 'hash/')
+                      .replace(/\?/, '_-0-_')
+                      .replace(/=/gi, '_-1-_')
+                      .replace(/&/gi, '_-2-_')
+
   const dirPath = path.join(path_build, pathname)
 
   try {
@@ -126,10 +142,14 @@ const createPage = async (browser, link) => {
   await page.setDefaultNavigationTimeout(0)
   await page.setRequestInterception(true)
 
-  debug && console.log('load page:', link)
+  pageLog = href.replace(origin, '')
+  log(chalk.yellow(`load page:`), `${link}`)
   page.goto(link)
 
+  let isLoading = true
+
   page.on('request', request => {
+    log(chalk.yellow(`loading resource:`), `${request.resourceType()}`)
     request.continue()
   })
 
@@ -137,19 +157,23 @@ const createPage = async (browser, link) => {
     let timeid = null
 
     page.on('response', async response => {
-      const buffer = await response.buffer()
-      debug && console.log('loading resource:', bytesToSize(buffer.length), `[${response.request().resourceType()}]`)
-      timeid && clearTimeout(timeid)
-      timeid = setTimeout(() => {
-        debug && console.log('load page done:', link)
-        resolve()
-      }, max_time_page_load)
+      try {
+        const buffer = await response.buffer()
+        log(chalk[isLoading ? 'green' : 'red'](`load resource:`), `${response.request().resourceType()} [${bytesToSize(buffer.length)}]`)
+        timeid && clearTimeout(timeid)
+        timeid = setTimeout(() => {
+          isLoading = false
+          log(chalk.green(`load page done:`), `${link}`)
+          resolve()
+        }, max_time_page_load)
+      } catch (e) {
+        log(chalk.bgRed(`critical loading error (!!!)`))
+      }
     })
   })
 
-
   const pathIndex = path.join(dirPath, 'index.html')
-  debug && console.log('save page:', pathIndex)
+  log(chalk.yellow(`save page:`), `${pathIndex}`)
 
   const htmlpage = await page.evaluate(
     () => {
@@ -157,8 +181,17 @@ const createPage = async (browser, link) => {
       script.setAttribute('type', 'text/javascript')
       script.textContent = `
         const href = window.location.href
-        if (href.match(/hash\\//)) {
-          window.location.href = href.replace(/hash\\//, '#')
+        if (
+          href.match(/hash\\//) ||
+          href.replace(/\?/, '_-0-_') ||
+          href.replace(/=/gi, '_-1-_') ||
+          href.replace(/&/gi, '_-2-_')
+        ) {
+          window.location.href = href
+                                  .replace(/hash\\//, '#')
+                                  .replace(/_-0-_/gi, '?')
+                                  .replace(/_-1-_/gi, '=')
+                                  .replace(/_-2-_/gi, '&')
         }
       `
       document.head.appendChild(script)
@@ -168,24 +201,28 @@ const createPage = async (browser, link) => {
   )
 
   fs.writeFileSync(pathIndex, htmlpage)
-  debug && console.log('save page done:', pathIndex)
+  log(chalk.green(`save page done:`), `${pathIndex}`)
 
-  debug && screenshots && console.log('screenshot page:', link)
+  screenshots && log(chalk.yellow(`screenshot page:`), `${link}`)
   if (screenshots) {
     const fullpath = path.join(dirPath, 'screenshot.png')
     await page.screenshot({ path: fullpath })
-    debug && console.log('screenshot page done:', fullpath)
+    log(chalk.green(`screenshot page done:`), `${fullpath}`)
   }
 
-  const links = await page.evaluate(() =>
-      [...document.querySelectorAll('a')]
+  const links = await page.evaluate(({ hash, question }) =>
+    [...document.querySelectorAll('a')]
         .map(a => a.href)
-        .filter(f => f && f.match(window.location.origin))
-  )
+        .filter(
+          href =>
+               href
+            && href.match(window.location.origin)
+            && (!!href.match('#') ? hash : true)
+            && (!!href.match(/\?/) ? question : true)
+        )
+  , { hash, question })
 
   await page.close()
-
-  await sleep(1000)
 
   return links.reduce((ctx, link) => {
     ctx[link] = false
@@ -194,20 +231,20 @@ const createPage = async (browser, link) => {
 }
 
 const createRobots = async () => {
-  const { path_build, site, debug } = (await config)()
+  const { path_build, site } = (await config)()
   const pathfile = path.join(path_build, 'robots.txt')
-  debug && console.log('create robots.txt:', pathfile)
+  log(chalk.yellow(`create robots.txt:`), `${pathfile}`)
   fs.writeFileSync(
     pathfile,
     `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`
   )
-  debug && console.log('create robots.txt done:', pathfile)
+  log(chalk.green(`create robots.txt done:`), `${pathfile}`)
 }
 
-const createSitemap = async links => {
-  const { path_build, site, debug, url } = (await config)()
+const createSitemap = async () => {
+  const { path_build, site, url } = (await config)()
   const pathfile = path.join(path_build, 'sitemap.txt')
-  debug && console.log('create sitemap.txt:', pathfile)
+  log(chalk.yellow(`create sitemap.txt:`), `${pathfile}`)
   fs.writeFileSync(
     pathfile,
     Object
@@ -220,7 +257,7 @@ const createSitemap = async links => {
       )
       .join('\n')
   )
-  debug && console.log('create sitemap.txt done:', pathfile)
+  log(chalk.green(`create sitemap.txt done:`), `${pathfile}`)
 }
 
 const server = () => new Promise(
@@ -248,17 +285,17 @@ const bytesToSize = bytes => {
    const sizes = ['Bytes', 'Kb', 'Mb', 'Gb', 'Tb']
    if (bytes == 0) return '0 Byte'
    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
-   return Math.round(bytes / Math.pow(1024, i), 2) + '' + sizes[i]
+   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i]
 }
 
 ;(async () => {
-  const { debugLaunch, url, debug, path_build } = (await config)()
+  const { debugLaunch, url, path_build } = (await config)()
 
   await server()
 
   const browser = await puppeteer.launch({
     ignoreHTTPSErrors: true,
-    headless: !debugLaunch,
+    headless: true,
     args: [
       '--disable-setuid-sandbox',
       '--no-sandbox',
@@ -266,15 +303,12 @@ const bytesToSize = bytes => {
     ],
   })
 
-  let links = {}
-  await progress(links)
-
   links = await createPage(browser, url)
 
   for (let x = 0; Object.keys(links).find(link => !links[link]); x++) {
     const link = Object.keys(links).find(link => !links[link])
 
-    await progress(links)
+    await sleep(1000)
     const pageLinks = await createPage(browser, link)
     links[link] = true
 
@@ -285,22 +319,16 @@ const bytesToSize = bytes => {
   }
   await browser.close()
 
-  await progress(links)
+  await sleep(1000)
   await createRobots()
-  await createSitemap(links)
+  await createSitemap()
 
-  if (debug) {
-    console.clear()
-    console.log('Good work!')
-    console.log(`Start static site: http://localhost:5555`)
-    console.log('')
-    console.log(`You may serve it with a static server:
-
-  yarn global add serve
-  serve build
-
-`)
-  }
+  console.clear()
+  console.log(chalk.green(`Good work!`))
+  console.log('')
+  console.log(`You may serve it with a static server:`)
+  console.log(`  yarn global add serve`)
+  console.log(`  serve build`)
 
   process.exit()
 })()
