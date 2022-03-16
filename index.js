@@ -98,7 +98,7 @@ const progress = async links => {
 
   if (debug) {
     console.clear()
-    console.log('progress:', `${linksValues.filter(f => f).length} / ${linksValues.length}`)
+    console.log('progress:', `${linksValues.filter(f => f).length + 1} / ${linksValues.length + 1}`)
   }
 }
 
@@ -178,8 +178,33 @@ const createPage = async (browser, link) => {
 }
 
 const createRobots = async () => {
-  const { path_build, site } = (await config)()
-  fs.writeFileSync(path.join(path_build, ''), `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`)
+  const { path_build, site, debug } = (await config)()
+  const pathfile = path.join(path_build, 'robots.txt')
+  debug && console.log('create robots.txt:', pathfile)
+  fs.writeFileSync(
+    pathfile,
+    `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`
+  )
+  debug && console.log('create robots.txt ok:', pathfile)
+}
+
+const createSitemap = async (links) => {
+  const { path_build, site, debug, url } = (await config)()
+  const pathfile = path.join(path_build, 'sitemap.txt')
+  debug && console.log('create sitemap.txt:', pathfile)
+  fs.writeFileSync(
+    pathfile,
+    Object
+      .keys(links)
+      .map(
+        link =>
+          link
+            .replace(url, site)
+            .replace(/#/gi, 'hash/')
+      )
+      .join('\n')
+  )
+  debug && console.log('create sitemap.txt ok:', pathfile)
 }
 
 const server = () => new Promise(
@@ -187,10 +212,16 @@ const server = () => new Promise(
     const { launch, path_build } = (await config)()
     const app = express()
     app.get('*', (req, res, next) => {
-      if (req.path === '/') {
-        res.sendFile('index.html', { root: path_build })
+      const urlPath = req.path === '/' ? 'index.html' : req.path
+          , filepath = path.join(path_build, urlPath)
+
+      if (
+        fs.existsSync(filepath) &&
+        !fs.statSync(filepath).isDirectory()
+      ) {
+        res.sendFile(filepath)
       } else {
-        express.static(path_build)(req, res, next)
+        res.sendFile('index.html', { root: path_build })
       }
     })
     app.listen(5555, () => resolve())
@@ -198,7 +229,7 @@ const server = () => new Promise(
 )
 
 ;(async () => {
-  const { launch, url } = (await config)()
+  const { launch, url, debug, path_build } = (await config)()
 
   await server()
 
@@ -212,7 +243,10 @@ const server = () => new Promise(
     ],
   })
 
-  let links = await createPage(browser, url)
+  let links = {}
+  await progress(links)
+
+  links = await createPage(browser, url)
 
   for (let x = 0; Object.keys(links).find(link => !links[link]); x++) {
     const link = Object.keys(links).find(link => !links[link])
@@ -226,8 +260,15 @@ const server = () => new Promise(
         link => !links[link] && (links[link] = false)
       )
   }
-
   await browser.close()
 
+  await progress(links)
   await createRobots()
+  await createSitemap(links)
+
+  if (debug) {
+    console.clear()
+    console.log('Good work!')
+    console.log(`Start static site: http://localhost:5555`)
+  }
 })()
