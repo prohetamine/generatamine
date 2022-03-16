@@ -16,6 +16,7 @@
     "fs": "^0.0.1-security",
     "inquirer": "^8.2.1",
     "path": "^0.12.7",
-    "puppeteer": "^13.5.1"
+    "puppeteer": "^13.5.1",
+    "sleep-promise": "^9.1.0"
   }
 }

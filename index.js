@@ -5,6 +5,7 @@ const inquirer = require('inquirer')
     , path = require('path')
     , fs = require('fs')
     , express = require('express')
+    , sleep = require('sleep-promise')
 
 const questions = [
   {
@@ -127,7 +128,12 @@ const createPage = async (browser, link) => {
   await page.goto(link)
 
   await new Promise(resolve => {
+    debug && console.log('loading...')
+    const timeid = setInterval(() => {
+      debug && console.log('loading...')
+    }, 1000)
     setTimeout(() => {
+      clearInterval(timeid)
       resolve()
     }, max_time_page_load)
   })
@@ -170,6 +176,8 @@ const createPage = async (browser, link) => {
   )
 
   await page.close()
+
+  await sleep(1000)
 
   return links.reduce((ctx, link) => {
     ctx[link] = false
@@ -270,5 +278,14 @@ const server = () => new Promise(
     console.clear()
     console.log('Good work!')
     console.log(`Start static site: http://localhost:5555`)
+    console.log('')
+    console.log(`You may serve it with a static server:
+
+  yarn global add serve
+  serve build
+
+`)
   }
+
+  process.exit()
 })()
