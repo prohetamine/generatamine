@@ -110,9 +110,9 @@ log = (() => {
   }
 })()
 
-/*process.on('uncaughtException', err => {
+process.on('uncaughtException', err => {
   log(chalk.bgRed(`critical loading error (!!!)`))
-})*/
+})
 
 const createPage = async (browser, link) => {
   const { max_time_page_load, screenshots, path_build, hash, question } = (await config)()
@@ -177,20 +177,25 @@ const createPage = async (browser, link) => {
 
   const htmlpage = await page.evaluate(
     () => {
+      if (document.querySelector('.gt-script')) {
+        return document.getElementsByTagName('html')[0].outerHTML
+      }
+
       const script = document.createElement('script')
       script.setAttribute('type', 'text/javascript')
+      script.className = 'gt-script'
       script.textContent = `
         const href = window.location.href
         if (
-          href.replace(/#/gi, '_-hash-_') ||
-          href.replace(/\\?/, '_-quest-_') ||
-          href.replace(/=/gi, '_-equally-_') ||
-          href.replace(/&/gi, '_-and-_')
+          href.match('_-hash-_') ||
+          href.match('_-quest-_') ||
+          href.match('_-equally-_') ||
+          href.match('_-and-_')
         ) {
           window.location.href = href
-                                  .replace(/_-hash-_/, '#')
-                                  .replace(/_-quest-_/, '?')
-                                  .replace(/_-equally-_/g, '=')
+                                  .replace(/_-hash-_/gi, '#')
+                                  .replace(/_-quest-_/gi, '?')
+                                  .replace(/_-equally-_/gi, '=')
                                   .replace(/_-and-_/gi, '&')
         }
       `
