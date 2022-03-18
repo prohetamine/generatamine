@@ -19,11 +19,11 @@ const processingBrowser = async config => {
   let links = await processingPage({
     browser,
     link,
-    links: { [link]: false },
+    links: {},
     config
   })
 
-  const patchedLinks = await stackPage(links, (link, links) =>
+  const patchedLinks = await stackPage({ ...links, [link]: true }, (link, links) =>
     processingPage({
       browser,
       link,

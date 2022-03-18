@@ -5,7 +5,7 @@ const processLog = (() => {
   return (pageLog, port, links, ...args) => {
     if (i > 20) {
       const linksValues = Object.values(links)
-      const progress = `   devServer: ${chalk.bold(`http://localhost:${port}`)}   progress: ${chalk.bold(linksValues.filter(f => f).length + 1)}/${chalk.bold(linksValues.length)}   ${pageLog ? `page: ${chalk.bold(pageLog)}   ` : ''}`
+      const progress = `   devServer: ${chalk.bold(`http://localhost:${port}`)}   progress: ${chalk.bold(linksValues.filter(f => f).length)}/${chalk.bold(linksValues.length)}   ${pageLog ? `page: ${chalk.bold(pageLog)}   ` : ''}`
 
       console.clear()
       console.log(chalk.bgWhiteBright(' '.repeat(progress.length - 36)))
