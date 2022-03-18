@@ -1,6 +1,36 @@
 #!/usr/bin/env node
+const path = require('path')
+    , rmConfig = require('./rm-config')
+    , initConfig = require('./init-config')
+    , getConfig = require('./get-config')
+    , server = require('./server')
+    , processingBrowser = require('./processing-browser')
 
-const inquirer = require('inquirer')
+const command = (process.argv[2] || '').trim()
+
+;(async () => {
+  if (command === 'init') initConfig()
+
+  if (command === 'rm') rmConfig()
+
+  if (command === 'start') {
+    const config = await getConfig()
+    await server(config)
+    await processingBrowser(config)
+
+    process.exit()
+  }
+
+  if (command === 'dev') {
+    const config = await getConfig()
+
+    console.log(config)
+  }
+})()
+
+
+
+/*const inquirer = require('inquirer')
     , puppeteer = require('puppeteer')
     , path = require('path')
     , fs = require('fs')
@@ -158,7 +188,7 @@ const createPage = async (browser, link) => {
       fs.mkdirSync(dirPath, { recursive: true })
     }
   } catch (e) {
-    /* is file */
+     is file
     return {}
   }
 
@@ -364,4 +394,4 @@ const bytesToSize = bytes => {
   await createGeneratamine()
 
   process.exit()
-})()
+})()*/
