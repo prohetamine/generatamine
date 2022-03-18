@@ -1,11 +1,11 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , createPath = require('./create-path')
 
-const rmConfig = () => {
+const rmConfig = async () => {
   const pathfile = createPath('.generataminerc')
 
-  if (fs.existsSync(pathfile)) {
-    fs.rmSync(pathfile)
+  if (await fs.exists(pathfile)) {
+    await fs.rm(pathfile)
     console.log('')
     console.log('Your config remove. 👌')
     console.log('')

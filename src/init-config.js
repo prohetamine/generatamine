@@ -1,4 +1,4 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , cli = require('./cli')
     , createPath = require('./create-path')
 
@@ -6,7 +6,7 @@ const initConfig = async () => {
   const config = await cli()
       , configJSON = JSON.stringify(config)
 
-  fs.writeFileSync(
+  await fs.writeFile(
     createPath('.generataminerc'),
     configJSON
   )

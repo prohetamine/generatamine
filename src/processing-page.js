@@ -1,6 +1,6 @@
 const chalk = require('chalk')
     , path = require('path')
-    , fs = require('fs')
+    , fs = require('fs-extra')
     , sleep = require('sleep-promise')
     , createPath = require('./create-path')
     , bytesToSize = require('./bytes-to-size')
@@ -47,8 +47,11 @@ const processingPage = async ({
 
   try {
     if (entry !== pathname) {
-      if (!fs.existsSync(pathDir) || !fs.statSync(pathDir).isDirectory()) {
-        fs.mkdirSync(pathDir, { recursive: true })
+      const isExists = await fs.exists(pathDir)
+          , stat = await fs.stat(pathDir)
+
+      if (!isExists || !stat.isDirectory()) {
+        await fs.mkdir(pathDir, { recursive: true })
       }
     }
   } catch (e) {
@@ -137,7 +140,7 @@ const processingPage = async ({
     }
   )
 
-  fs.writeFileSync(pathIndex, htmlPage)
+  await fs.writeFile(pathIndex, htmlPage)
   pLog(chalk.green(`save page done:`), `${pathIndex}`)
 
   if (isScreenshots) {

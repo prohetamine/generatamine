@@ -1,19 +1,21 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , createPath = require('./create-path')
     , chalk = require('chalk')
 
-const getSitemap = (config) => {
+const getSitemap = async config => {
   const { build, site, port } = config
   const pathfile = createPath(build, 'sitemap.txt')
 
-  if (!fs.existsSync(pathfile)) {
+  const isExists = await fs.exists(pathfile)
+
+  if (!isExists) {
     console.log('')
     console.log(chalk.red('Read sitemap.txt 📍'))
     console.log('')
     return
   }
 
-  const text = fs.readFileSync(pathfile, 'utf8')
+  const text = await fs.readFile(pathfile, 'utf8')
       , links = text
                   .match(/.+/g)
                   .map(link => {

@@ -1,5 +1,5 @@
 # generatamine
 
-sh ``
+```sh
 -
-``
+```

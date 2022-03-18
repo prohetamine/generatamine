@@ -13,22 +13,26 @@ const path = require('path')
 const command = (process.argv[2] || '').trim()
 
 ;(async () => {
-  if (command === 'init') initConfig()
+  if (command === 'init') {
+    await initConfig()
+  }
 
-  if (command === 'rm') rmConfig()
+  if (command === 'rm') {
+    await rmConfig()
+  }
 
-  if (command === '' || command === 'build') {
+  if (command === 'build') {
     const config = await getConfig()
     await server(config)
     const links = await processingBrowser(config)
-    createRobots(config)
-    createSitemap(config, links)
+    await createRobots(config)
+    await createSitemap(config, links)
     process.exit()
   }
 
   if (command === 'start') {
     const config = await getConfig()
     await devServer(config)
-    getSitemap(config)
+    await getSitemap(config)
   }
 })()

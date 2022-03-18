@@ -1,13 +1,15 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , createPath = require('./create-path')
     , chalk = require('chalk')
 
-const createSitemap = (config, links) => {
+const createSitemap = async (config, links) => {
   const { build, site } = config
   const pathfile = createPath(build, 'sitemap.txt')
 
-  if (fs.existsSync(pathfile)) {
-    fs.rmSync(pathfile)
+  const isExists = fs.exists(pathfile)
+
+  if (isExists) {
+    await fs.rm(pathfile)
   }
 
   const sitemap = links.map(link => {
@@ -15,7 +17,7 @@ const createSitemap = (config, links) => {
     return link.replace(origin, site)
   }).join('\n')
 
-  fs.writeFileSync(pathfile, sitemap)
+  await fs.writeFile(pathfile, sitemap)
 
   console.log('')
   console.log(chalk.cyan(sitemap))

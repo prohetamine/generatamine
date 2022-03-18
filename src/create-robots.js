@@ -1,18 +1,20 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , createPath = require('./create-path')
     , chalk = require('chalk')
 
-const createRobots = config => {
+const createRobots = async config => {
   const { build, site } = config
   const pathfile = createPath(build, 'robots.txt')
 
-  if (fs.existsSync(pathfile)) {
-    fs.rmSync(pathfile)
+  const isExists = await fs.exists(pathfile)
+
+  if (isExists) {
+    await fs.rm(pathfile)
   }
 
   const robots = `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`
 
-  fs.writeFileSync(pathfile, robots)
+  await fs.writeFile(pathfile, robots)
 
   console.log('')
   console.log(chalk.cyan(robots))

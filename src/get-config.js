@@ -1,4 +1,4 @@
-const fs = require('fs')
+const fs = require('fs-extra')
     , createPath = require('./create-path')
     , initConfig = require('./init-config')
 
@@ -7,11 +7,11 @@ const getConfig = async () => {
   let config = null
 
   try {
-    const configJSON = fs.readFileSync(pathfile, 'utf8')
+    const configJSON = await fs.readFile(pathfile, 'utf8')
     config = JSON.parse(configJSON)
   } catch (e) {
     await initConfig()
-    const configJSON = fs.readFileSync(pathfile, 'utf8')
+    const configJSON = await fs.readFile(pathfile, 'utf8')
     config = JSON.parse(configJSON)
   }
 
