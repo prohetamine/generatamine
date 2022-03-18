@@ -5,14 +5,14 @@ const path = require('path')
     , createPath = require('./create-path')
     , bytesToSize = require('./bytes-to-size')
 
-const devServer = ({ build, port }) => new Promise(
+const devServer = ({ build, port, site, isProdDomain }) => new Promise(
   async resolve => {
     const app = express()
     app.get('*', async (req, res, next) => {
       const urlPath = req.path
           , filepath = createPath(build, urlPath)
 
-      console.log(chalk.yellow(`load:`), `${filepath}`)
+      console.log(chalk.yellow(`load:`), `${urlPath}`)
 
       if (await fs.exists(filepath)) {
         const fileStat = await fs.stat(filepath)
@@ -31,7 +31,7 @@ const devServer = ({ build, port }) => new Promise(
     })
     app.listen(port, () => {
       console.log('')
-      console.log(`Start server: http://localhost:${port} ✨`)
+      console.log(`Start server: ${isProdDomain ? site : `http://localhost:${port}`} ✨`)
       console.log('')
       resolve()
     })

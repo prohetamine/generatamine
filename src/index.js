@@ -30,9 +30,18 @@ const command = (process.argv[2] || '').trim()
     process.exit()
   }
 
-  if (command === 'start') {
+  if (command === 'dev') {
     const config = await getConfig()
     await devServer(config)
+    await getSitemap(config)
+  }
+
+  if (command === 'start') {
+    const config = await getConfig()
+    await devServer({
+      ...config,
+      isProdDomain: true
+    })
     await getSitemap(config)
   }
 })()
