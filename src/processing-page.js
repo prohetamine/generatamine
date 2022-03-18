@@ -111,7 +111,7 @@ const processingPage = async ({
   pLog(chalk.yellow(`save page:`), `${pathIndex}`)
 
   const htmlPage = await page.evaluate(
-    () => {
+    (______pathname, isScreenshots) => {
       if (document.querySelector('.gt-script')) {
         return document.getElementsByTagName('html')[0].outerHTML
       }
@@ -134,11 +134,41 @@ const processingPage = async ({
                                   .replace(/\\/and\\//gi, '&')
         }
       `
+
+      if (isScreenshots) {
+        let meta = document.createElement('meta')
+        meta.property = 'og:image'
+        meta.content = '/screenshot.png'
+        document.head.appendChild(meta)
+
+        meta = document.createElement('meta')
+        meta.property = 'og:image:secure_url'
+        meta.content = '/screenshot.png'
+        document.head.appendChild(meta)
+
+        meta = document.createElement('meta')
+        meta.property = 'og:image:type'
+        meta.content = 'image/png'
+        document.head.appendChild(meta)
+
+        meta = document.createElement('meta')
+        meta.property = 'og:image:width'
+        meta.content = '400'
+        document.head.appendChild(meta)
+
+        meta = document.createElement('meta')
+        meta.property = 'og:image:height'
+        meta.content = '300'
+        document.head.appendChild(meta)
+      }
+
       document.head.appendChild(script)
 
       return document.getElementsByTagName('html')[0].outerHTML
     }
-  )
+  , pathname, isScreenshots)
+
+  pLog(pathname, isScreenshots)
 
   await fs.writeFile(pathIndex, htmlPage)
   pLog(chalk.green(`save page done:`), `${pathIndex}`)
