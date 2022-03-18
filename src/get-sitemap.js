@@ -14,7 +14,6 @@ const getSitemap = async config => {
     console.log('')
     console.log(`Could not find the file sitemap.txt since it doesn't exist, you can create it using the command: `)
     console.log('')
-    console.log(`yarn generatamine init`)
     console.log(`yarn generatamine build`)
     console.log('')
     process.exit()
