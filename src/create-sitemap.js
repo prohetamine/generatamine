@@ -6,7 +6,7 @@ const createSitemap = async (config, links) => {
   const { build, site } = config
   const pathfile = createPath(build, 'sitemap.txt')
 
-  const isExists = fs.exists(pathfile)
+  const isExists = await fs.exists(pathfile)
 
   if (isExists) {
     await fs.rm(pathfile)

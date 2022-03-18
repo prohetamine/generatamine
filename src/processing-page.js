@@ -48,9 +48,9 @@ const processingPage = async ({
   try {
     if (entry !== pathname) {
       const isExists = await fs.exists(pathDir)
-          , stat = await fs.stat(pathDir)
+          , stat = isExists ? await fs.stat(pathDir) : false
 
-      if (!isExists || !stat.isDirectory()) {
+      if (!isExists || (stat && !stat.isDirectory())) {
         await fs.mkdir(pathDir, { recursive: true })
       }
     }
