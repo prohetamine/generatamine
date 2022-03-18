@@ -42,6 +42,9 @@ const command = (process.argv[2] || '').trim()
       ...config,
       isProdDomain: true
     })
-    await getSitemap(config)
+    await getSitemap({
+      ...config,
+      isProdDomain: true
+    })
   }
 })()

@@ -3,7 +3,7 @@ const fs = require('fs-extra')
     , chalk = require('chalk')
 
 const getSitemap = async config => {
-  const { build, site, port } = config
+  const { build, site, port, isProdDomain } = config
   const pathfile = createPath(build, 'sitemap.txt')
 
   const isExists = await fs.exists(pathfile)
@@ -12,6 +12,12 @@ const getSitemap = async config => {
     console.log('')
     console.log(chalk.red('Read sitemap.txt 📍'))
     console.log('')
+    console.log(`Could not find the file sitemap.txt since it doesn't exist, you can create it using the command: `)
+    console.log('')
+    console.log(`yarn ${chalk.yellow('generatamine')} init`)
+    console.log(`yarn ${chalk.yellow('generatamine')} build`)
+    console.log('')
+    process.exit()
     return
   }
 
@@ -20,7 +26,7 @@ const getSitemap = async config => {
                   .match(/.+/g)
                   .map(link => {
                     const { origin } = new URL(link)
-                    return link.replace(origin, `http://localhost:${port}`)
+                    return isProdDomain ? link : link.replace(origin, `http://localhost:${port}`)
                   }).join('\n')
 
   console.log('')

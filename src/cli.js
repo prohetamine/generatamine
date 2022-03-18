@@ -2,6 +2,8 @@ const fs = require('fs')
     , createPath = require('./create-path')
     , inquirer = require('inquirer')
 
+let contextBuild = null
+
 const questions = [
   {
     type: 'input',
@@ -11,12 +13,14 @@ const questions = [
       return 'build'
     },
     validate (value) {
-      const name = value.match(/\b\w+\b/)
-      if (name) {
+      const isExists = fs.existsSync(createPath(value))
+
+      if (isExists) {
+        contextBuild = value
         return true
       }
 
-      return 'The value is invalid or not true at all.'
+      return 'This directory does not exist, you still have to create using yarn build or another tool.'
     }
   },
   {
@@ -25,6 +29,15 @@ const questions = [
     message: 'Entry point:',
     default () {
       return '/'
+    },
+    validate (value) {
+      const isExists = fs.existsSync(createPath(contextBuild, value === '/' ? 'index.html' : value))
+
+      if (isExists) {
+        return true
+      }
+
+      return 'This file does not exist, you still have to create using yarn build or another tool.'
     }
   },
   {
