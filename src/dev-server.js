@@ -12,6 +12,8 @@ const devServer = ({ build, port }) => new Promise(
       const urlPath = req.path
           , filepath = createPath(build, urlPath)
 
+      console.log(chalk.yellow(`load:`), `${filepath}`)
+
       if (await fs.exists(filepath)) {
         const fileStat = await fs.stat(filepath)
         if (!fileStat.isDirectory()) {
