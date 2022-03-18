@@ -13,7 +13,16 @@ const stackPage = (_links, callback) => new Promise(async resolve => {
       )
   }
 
-  resolve()
+  links = Object.keys(links)
+            .map(link =>
+                  link
+                    .replace(/#/gi, '/hash/')
+                    .replace(/\?/, '/query/')
+                    .replace(/&/gi, '/and/')
+                    .replace(/=/gi, '/equally/')
+            )
+
+  resolve(links)
 })
 
 module.exports = stackPage

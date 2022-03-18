@@ -17,7 +17,6 @@ const getConfig = async () => {
 
   return {
     ...config,
-    build: createPath(config.build),
     ignore: config.ignore.split(','),
     isHash: config.hash === 'yes',
     isQuery: config.query === 'yes',

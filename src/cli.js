@@ -24,15 +24,15 @@ const questions = [
     name: 'entry',
     message: 'Entry point:',
     default () {
-      return 'index.html'
-    },
-    validate (value) {
-      const name = value.match(/\b\w+\.\w+\b/)
-      if (name) {
-        return true
-      }
-
-      return 'The value is invalid or not true at all.'
+      return '/'
+    }
+  },
+  {
+    type: 'input',
+    name: 'port',
+    message: 'Dev server port:',
+    default () {
+      return '5555'
     }
   },
   {
@@ -111,8 +111,7 @@ const questions = [
 const cli = async () => {
   const output = await inquirer.prompt(questions)
   return {
-    ...output,
-    port: 5555
+    ...output
   }
 }
 

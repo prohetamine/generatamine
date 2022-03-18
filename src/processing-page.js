@@ -12,86 +12,102 @@ const processingPage = async ({
   links,
   config
 }) => {
-  const { expectation, screenshots, build, hash, query, entry } = config
+  const {
+    entry,
+    expectation,
+    isScreenshots,
+    isHash,
+    isQuery,
+    ignore,
+    build,
+    port
+  } = config
 
-  const { origin, href } = new URL(link)
+  const {
+    origin,
+    href
+  } = new URL(link)
 
   const pathname = href
                     .replace(origin, '')
-                    .replace(/#/gi, '_-hash-_')
-                    .replace(/\?/, '_-quest-_')
-                    .replace(/=/gi, '_-equally-_')
-                    .replace(/&/gi, '_-and-_')
+                    .replace(/#/gi, '/hash/')
+                    .replace(/\?/, '/query/')
+                    .replace(/&/gi, '/and/')
+                    .replace(/=/gi, '/equally/')
 
-  const dirPath = createPath(pathname)
+  const pLog = (...args) =>
+    processingLog(
+      pathname,
+      port,
+      links,
+      ...args
+    )
 
-  try {
-    if (fs.existsSync(dirPath) && !fs.statSync(dirPath).isDirectory()) {
-      fs.mkdirSync(dirPath, { recursive: true })
-    }
-  } catch (e) {
-    console.log(e)
-    return {}
-  }
-
-  console.log(dirPath)
-
-
-  /*
+  const pathDir = createPath(build, pathname)
 
   try {
-    if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
-      fs.mkdirSync(dirPath, { recursive: true })
+    if (entry !== pathname) {
+      if (!fs.existsSync(pathDir) || !fs.statSync(pathDir).isDirectory()) {
+        fs.mkdirSync(pathDir, { recursive: true })
+      }
     }
   } catch (e) {
-    console.log(e)
     return {}
   }
 
   const page = await browser.newPage()
-  await page.setViewport({ width: 1280, height: 630 });
+  await page.setViewport({ width: 1280, height: 630 })
   await page.setDefaultNavigationTimeout(0)
   await page.setRequestInterception(true)
 
-  const pageLog = href.replace(origin, '')
-  const _processLog = (...args) => {
-    processLog(pageLog, links, ...args)
-  }
-
-  _processLog(chalk.yellow(`load page:`), `${link}`)
+  pLog(chalk.yellow(`load page:`), `${link}`)
 
   page.goto(link)
 
   let isLoading = true
 
   page.on('request', request => {
-    _processLog(chalk.yellow(`loading resource:`), `${request.resourceType()}`)
-    request.continue()
+    pLog(chalk.yellow(`loading resource:`), `${request.resourceType()}`)
+
+    const fileType = request.url().match(/\.\w+$/)
+    const isIgnored = !!ignore.find(_fileType => `.${_fileType}` === (fileType ? fileType[0] : ''))
+
+    if (isIgnored) {
+      request.abort()
+    } else {
+      request.continue()
+    }
   })
 
   await new Promise(resolve => {
     let timeid = null
 
     page.on('response', async response => {
+      const status = response.status()
       try {
-        const buffer = await response.buffer()
-        _processLog(chalk[isLoading ? 'green' : 'red'](`load resource:`), `${response.request().resourceType()} [${bytesToSize(buffer.length)}]`)
+        let buffer = []
+
+        try {
+          buffer = await response.buffer()
+        } catch (e) {}
+
+        pLog(chalk[isLoading ? 'green' : 'red'](`load resource:`), `${response.request().resourceType()} ${buffer.length > 0 ? `[${bytesToSize(buffer.length)}]` : `[${chalk.magenta(`redirect`)}]`}`)
         timeid && clearTimeout(timeid)
         timeid = setTimeout(() => {
           isLoading = false
-          _processLog(chalk.green(`load page done:`), `${link}`)
+          pLog(chalk.green(`load page done:`), `${link}`)
           resolve()
         }, expectation)
       } catch (e) {
-        _processLog(chalk.bgRed(`critical loading error (!!!)`))
+        pLog(chalk.bgRed(`critical loading error (!!!)`))
       }
     })
   })
 
-  const pathIndex = path.join(dirPath, 'index.html')
-  _processLog(chalk.yellow(`save page:`), `${pathIndex}`)
+  const pathIndex = path.join(pathDir, 'index.html')
+  pLog(chalk.yellow(`save page:`), `${pathIndex}`)
 
-  const htmlpage = await page.evaluate(
+  const htmlPage = await page.evaluate(
     () => {
       if (document.querySelector('.gt-script')) {
         return document.getElementsByTagName('html')[0].outerHTML
@@ -103,16 +119,16 @@ const processingPage = async ({
       script.textContent = `
         const href = window.location.href
         if (
-          href.match('_-hash-_') ||
-          href.match('_-quest-_') ||
-          href.match('_-equally-_') ||
-          href.match('_-and-_')
+          href.match('/hash/') ||
+          href.match('/query/') ||
+          href.match('/equally/') ||
+          href.match('/and/')
         ) {
           window.location.href = href
-                                  .replace(/_-hash-_/gi, '#')
-                                  .replace(/_-quest-_/gi, '?')
-                                  .replace(/_-equally-_/gi, '=')
-                                  .replace(/_-and-_/gi, '&')
+                                  .replace(/\\/hash\\//gi, '#')
+                                  .replace(/\\/query\\//gi, '?')
+                                  .replace(/\\/equally\\//gi, '=')
+                                  .replace(/\\/and\\//gi, '&')
         }
       `
       document.head.appendChild(script)
@@ -121,38 +137,34 @@ const processingPage = async ({
     }
   )
 
-  fs.writeFileSync(pathIndex, htmlpage)
-  _processLog(chalk.green(`save page done:`), `${pathIndex}`)
+  fs.writeFileSync(pathIndex, htmlPage)
+  pLog(chalk.green(`save page done:`), `${pathIndex}`)
 
-  screenshots && processLog(chalk.yellow(`screenshot page:`), `${link}`)
-  if (screenshots) {
-    const fullpath = path.join(dirPath, 'screenshot.png')
-    await page.screenshot({ path: fullpath })
-    _processLog(chalk.green(`screenshot page done:`), `${fullpath}`)
+  if (isScreenshots) {
+    pLog(chalk.yellow(`screenshot page:`), `${link}`)
+    const fullPath = path.join(pathDir, 'screenshot.png')
+    await page.screenshot({ path: fullPath })
+    pLog(chalk.green(`screenshot page done:`), `${fullPath}`)
   }
 
-  const _links = await page.evaluate(({ hash, query }) =>
+  const pageLinks = await page.evaluate(({ isHash, isQuery }) =>
     [...document.querySelectorAll('a')]
         .map(a => a.href)
         .filter(
           href =>
                href
             && href.match(window.location.origin)
-            && (!!href.match('#') ? hash : true)
-            && (!!href.match(/\?/) ? query : true)
+            && (!!href.match('#') ? isHash : true)
+            && (!!href.match(/\?/) ? isQuery : true)
         )
-  , { hash, query })
+  , { isHash, isQuery })
 
-  await page.close()*/
+  await page.close()
 
-  await sleep(1000)
-
-  return ['http://localhost:5555/about', 'http://localhost:5555/about#lolkek', 'http://localhost:5555/about?lol=kek&g=124'].reduce((links, link) => {
+  return pageLinks.reduce((links, link) => {
     links[link] = false
     return links
-  }, links)
+  }, {})
 }
-
-
 
 module.exports = processingPage

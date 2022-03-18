@@ -9,11 +9,12 @@ const processingBrowser = async config => {
     args: [
       '--disable-setuid-sandbox',
       '--no-sandbox',
-      '--window-size=1200,630'
+      '--window-size=1200,630',
+      '--disable-web-security'
     ],
   })
 
-  const link = `http://localhost:${config.port}/${config.entry}`
+  const link = `http://localhost:${config.port}${config.entry}`
 
   let links = await processingPage({
     browser,
@@ -22,7 +23,7 @@ const processingBrowser = async config => {
     config
   })
 
-  await stackPage(links, (link, links) =>
+  const patchedLinks = await stackPage(links, (link, links) =>
     processingPage({
       browser,
       link,
@@ -32,6 +33,12 @@ const processingBrowser = async config => {
   )
 
   await browser.close()
+
+  console.clear()
+  console.log('The structure of the site has been finalized 👌')
+  console.log('')
+
+  return patchedLinks
 }
 
 module.exports = processingBrowser
