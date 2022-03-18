@@ -111,7 +111,7 @@ const processingPage = async ({
   pLog(chalk.yellow(`save page:`), `${pathIndex}`)
 
   const htmlPage = await page.evaluate(
-    (______pathname, isScreenshots) => {
+    (isScreenshots) => {
       if (document.querySelector('.gt-script')) {
         return document.getElementsByTagName('html')[0].outerHTML
       }
@@ -166,9 +166,7 @@ const processingPage = async ({
 
       return document.getElementsByTagName('html')[0].outerHTML
     }
-  , pathname, isScreenshots)
-
-  pLog(pathname, isScreenshots)
+  , isScreenshots)
 
   await fs.writeFile(pathIndex, htmlPage)
   pLog(chalk.green(`save page done:`), `${pathIndex}`)
