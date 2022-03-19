@@ -116,25 +116,6 @@ const processingPage = async ({
         return document.getElementsByTagName('html')[0].outerHTML
       }
 
-      const script = document.createElement('script')
-      script.setAttribute('type', 'text/javascript')
-      script.className = 'gt-script'
-      script.textContent = `
-        const href = window.location.href
-        if (
-          href.match('/hash/') ||
-          href.match('/query/') ||
-          href.match('/equally/') ||
-          href.match('/and/')
-        ) {
-          window.location.href = href
-                                  .replace(/\\/hash\\//gi, '#')
-                                  .replace(/\\/query\\//gi, '?')
-                                  .replace(/\\/equally\\//gi, '=')
-                                  .replace(/\\/and\\//gi, '&')
-        }
-      `
-
       if (isScreenshots) {
         let meta = document.createElement('meta')
         meta.property = 'og:image'
@@ -153,14 +134,34 @@ const processingPage = async ({
 
         meta = document.createElement('meta')
         meta.property = 'og:image:width'
-        meta.content = '400'
+        meta.content = '1280'
         document.head.appendChild(meta)
 
         meta = document.createElement('meta')
         meta.property = 'og:image:height'
-        meta.content = '300'
+        meta.content = '630'
         document.head.appendChild(meta)
       }
+
+      const script = document.createElement('script')
+      script.setAttribute('type', 'text/javascript')
+      script.className = 'gt-script'
+      script.textContent = `
+        const href = window.location.href
+        if (
+          href.match('/hash/') ||
+          href.match('/query/') ||
+          href.match('/equally/') ||
+          href.match('/and/')
+        ) {
+          window.location.href = href
+                                  .replace(/\\/hash\\//gi, '#')
+                                  .replace(/\\/query\\//gi, '?')
+                                  .replace(/\\/equally\\//gi, '=')
+                                  .replace(/\\/and\\//gi, '&')
+                                  .replace(/\\/$/, '')
+        }
+      `
 
       document.head.appendChild(script)
 
