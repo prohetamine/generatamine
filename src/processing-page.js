@@ -20,7 +20,8 @@ const processingPage = async ({
     isQuery,
     ignore,
     build,
-    port
+    port,
+    site
   } = config
 
   const {
@@ -59,7 +60,7 @@ const processingPage = async ({
   }
 
   const page = await browser.newPage()
-  await page.setViewport({ width: 1280, height: 630 })
+  await page.setViewport({ width: 1280, height: 720 })
   await page.setDefaultNavigationTimeout(0)
   await page.setRequestInterception(true)
 
@@ -111,36 +112,10 @@ const processingPage = async ({
   pLog(chalk.yellow(`save page:`), `${pathIndex}`)
 
   const htmlPage = await page.evaluate(
-    (isScreenshots) => {
+    path => {
       if (document.querySelector('.gt-script')) {
-        return document.getElementsByTagName('html')[0].outerHTML
-      }
-
-      if (isScreenshots) {
-        let meta = document.createElement('meta')
-        meta.property = 'og:image'
-        meta.content = '/screenshot.png'
-        document.head.appendChild(meta)
-
-        meta = document.createElement('meta')
-        meta.property = 'og:image:secure_url'
-        meta.content = '/screenshot.png'
-        document.head.appendChild(meta)
-
-        meta = document.createElement('meta')
-        meta.property = 'og:image:type'
-        meta.content = 'image/png'
-        document.head.appendChild(meta)
-
-        meta = document.createElement('meta')
-        meta.property = 'og:image:width'
-        meta.content = '1280'
-        document.head.appendChild(meta)
-
-        meta = document.createElement('meta')
-        meta.property = 'og:image:height'
-        meta.content = '630'
-        document.head.appendChild(meta)
+        const htmlPage = document.getElementsByTagName('html')[0].outerHTML.replace(/%%SITE%%/g, path)
+        return htmlPage
       }
 
       const script = document.createElement('script')
@@ -165,9 +140,10 @@ const processingPage = async ({
 
       document.head.appendChild(script)
 
-      return document.getElementsByTagName('html')[0].outerHTML
+      const htmlPage = document.getElementsByTagName('html')[0].outerHTML.replace(/%%SITE%%/g, path)
+      return htmlPage
     }
-  , isScreenshots)
+  , site + (pathname === '/' ? '' : pathname))
 
   await fs.writeFile(pathIndex, htmlPage)
   pLog(chalk.green(`save page done:`), `${pathIndex}`)

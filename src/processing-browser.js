@@ -5,11 +5,11 @@ const puppeteer = require('puppeteer')
 const processingBrowser = async config => {
   const browser = await puppeteer.launch({
     ignoreHTTPSErrors: true,
-    headless: true,
+    headless: false,
     args: [
       '--disable-setuid-sandbox',
       '--no-sandbox',
-      '--window-size=1200,630',
+      '--window-size=1280,720',
       '--disable-web-security'
     ],
   })
