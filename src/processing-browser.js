@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer')
 const processingBrowser = async config => {
   const browser = await puppeteer.launch({
     ignoreHTTPSErrors: true,
-    headless: false,
+    headless: true,
     args: [
       '--disable-setuid-sandbox',
       '--no-sandbox',

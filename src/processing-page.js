@@ -112,37 +112,9 @@ const processingPage = async ({
   pLog(chalk.yellow(`save page:`), `${pathIndex}`)
 
   const htmlPage = await page.evaluate(
-    path => {
-      if (document.querySelector('.gt-script')) {
-        const htmlPage = document.getElementsByTagName('html')[0].outerHTML.replace(/%%SITE%%/g, path)
-        return htmlPage
-      }
-
-      const script = document.createElement('script')
-      script.setAttribute('type', 'text/javascript')
-      script.className = 'gt-script'
-      script.textContent = `
-        const href = window.location.href
-        if (
-          href.match('/hash/') ||
-          href.match('/query/') ||
-          href.match('/equally/') ||
-          href.match('/and/')
-        ) {
-          window.location.href = href
-                                  .replace(/\\/hash\\//gi, '#')
-                                  .replace(/\\/query\\//gi, '?')
-                                  .replace(/\\/equally\\//gi, '=')
-                                  .replace(/\\/and\\//gi, '&')
-                                  .replace(/\\/$/, '')
-        }
-      `
-
-      document.head.appendChild(script)
-
-      const htmlPage = document.getElementsByTagName('html')[0].outerHTML.replace(/%%SITE%%/g, path)
-      return htmlPage
-    }
+    path =>
+      document.getElementsByTagName('html')[0].outerHTML
+                                                  .replace(/%%SITE%%/g, path)
   , site + (pathname === '/' ? '' : pathname))
 
   await fs.writeFile(pathIndex, htmlPage)
