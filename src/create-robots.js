@@ -12,7 +12,7 @@ const createRobots = async config => {
     await fs.rm(pathfile)
   }
 
-  const robots = `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.txt`
+  const robots = `User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.xml`
 
   await fs.writeFile(pathfile, robots)
 
