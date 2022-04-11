@@ -1,5 +1,3 @@
 # generatamine
 
-```sh
--
-```
+wait
